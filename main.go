@@ -5,10 +5,15 @@ import (
 	"crypto/sha1"
 	"encoding/base32"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func toBytes(value int64) []byte {
 	var result []byte
@@ -55,12 +60,15 @@ func oneTimePassword(key []byte, value []byte) uint32 {
 
 // all []byte in this program are treated as Big Endian
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "must specify key to use")
-		os.Exit(1)
-	}
 
-	input := os.Args[1]
+	var input string
+
+	if len(os.Args) == 2 {
+		input = os.Args[1]
+	} else {
+		input = CreateSecret()
+		fmt.Printf("secrect: %s \n", input)
+	}
 
 	// decode the key from the first argument
 	inputNoSpaces := strings.Replace(input, " ", "", -1)
@@ -77,4 +85,26 @@ func main() {
 
 	secondsRemaining := 30 - (epochSeconds % 30)
 	fmt.Printf("%06d (%d second(s) remaining)\n", pwd, secondsRemaining)
+}
+
+var (
+	Table = []string{
+		"A", "B", "C", "D", "E", "F", "G", "H", // 7
+		"I", "J", "K", "L", "M", "N", "O", "P", // 15
+		"Q", "R", "S", "T", "U", "V", "W", "X", // 23
+		"Y", "Z", "2", "3", "4", "5", "6", "7", // 31
+		// padding char
+	}
+)
+
+func CreateSecret() string {
+	var (
+		length int = 32
+		secret []string
+	)
+
+	for i := 0; i < length; i++ {
+		secret = append(secret, Table[rand.Intn(len(Table))])
+	}
+	return strings.Join(secret, "")
 }
